@@ -1,54 +1,67 @@
-import sqlite3, os
-
-def create_device_db():
-    create_query = "CREATE TABLE device (id INT primary key not null, name TEXT)"
-    conn = sqlite3.connect('../deviceData.db')
-    print( "Opened database successfully")
-    conn.execute(create_query)
-    conn.commit()
-    conn.close()
-
-
-## database for shop details
-def create_shop_db():
-    create_query = "create table shopDetails (id int primary key, device_id int not null,\
-        shop_name text, owner_name text not null, location text not null, contact_details text not null, shop_type text not null, open_shop_time text, close_shop_time text,\
-        home_order numeric not null, charges_per_km numeric, critical_time_from text, critical_time_to text, foreign key (device_id) references device(id))"
-    conn = sqlite3.connect('../deviceData.db')
-    print( "Opened database successfully")
-    conn.execute(create_query)
-    conn.commit()
-    conn.close()
-
-
-## database for products available in the shop
-def products():
-    create_query = "create table products (id int primary key, shop_id int not null,\
-        product_name text not null, price int not null, discount int, available numeric, available_for_home numeric,\
-        foreign key (shop_id) references shopDetails(id))"
-    conn = sqlite3.connect('../deviceData.db')
-    print( "Opened database successfully")
-    conn.execute(create_query)
-    conn.commit()
-    conn.close()
-
-
-## database for data obtained from the IoT
-# add number of bodies detected
-def iot_data():
-    create_query = "create table realData (id int primary key, device_id int not null, open_door text not null, close_door text not null,\
-        body_detected numeric not null, no_of_people int not null, foreign key (device_id) references device(id))"
-    conn = sqlite3.connect('../deviceData.db')
-    print( "Opened database successfully")
-    conn.execute(create_query)
-    conn.commit()
-    conn.close()
+import os
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.dialects.mysql import TIME
 
 
 
-if __name__ == '__main__':
-    create_device_db()
-    create_shop_db()
-    products()
-    iot_data()
+project_dir = os.path.dirname(os.path.abspath(__file__))
+database_file = "sqlite:///{}".format(os.path.join(project_dir, "database.db"))
+print(database_file)
+app = Flask(__name__)
+app.debug = True
+app.config["SQLALCHEMY_DATABASE_URI"] = database_file
 
+
+db = SQLAlchemy(app)
+
+
+class Device(db.Model):
+    id = db.Column(db.Integer, unique=True, nullable=False, primary_key=True)
+    device_name = db.Column(db.String(30), nullable=False) 
+    def __repr__(self):
+        return "<Device Name: {}>".format(self.device_name)
+
+class Shop(db.Model):
+    id = db.Column(db.Integer, unique=True, nullable=False, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('device.id'), nullable=False)
+    shop_name = db.Column(db.String(30), nullable=False)
+    owner_name = db.Column(db.String(30), nullable=False)
+    location = db.Column(db.String(30), nullable=False)
+    contact_details = db.Column(db.String(30), nullable=False)
+    shop_type = db.Column(db.String(30), nullable=False)
+    open_shop_time = db.Column(TIME())
+    close_shop_time = db.Column(TIME())
+    home_delivery = db.Column(db.Boolean)
+    charges_per_km = db.Column(db.Integer)
+    critical_time_from = db.Column(TIME())
+    critical_time_to = db.Column(TIME())
+
+    def __repr__(self):
+        return "<Shop Name: {}>".format(self.shop_name)
+
+
+class Product(db.Model):
+    id = db.Column(db.Integer, unique=True, nullable=False, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey('shop.id'), nullable=False)
+    product_name = db.Column(db.String(50), nullable=False)
+    discount = db.Column(db.Integer)
+    available_item = db.Column(db.Boolean)
+    def __repr__(self):
+        return "<Product Name: {}>".format(self.product_name)
+
+class IOT(db.Model):
+    id = db.Column(db.Integer, unique=True, nullable=False, primary_key=True)
+    device_id = db.Column(db.Integer, db.ForeignKey('device.id'), nullable=False)
+    open_door_time = db.Column(db.DateTime, nullable=False)
+    close_door_time = db.Column(db.DateTime, nullable=False)
+    body_detected = db.Column(db.Boolean)
+    no_of_bodies = db.Column(db.Integer)
+
+    def __repr__(self):
+        return "<Open door time: {}>".format(self.open_door_time)
+
+
+# if __name__ == '__main__':
+#     db.drop_all()
+#     db.create_all()
