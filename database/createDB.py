@@ -57,6 +57,9 @@ class IOT(db.Model):
     close_door_time = db.Column(db.DateTime, nullable=False)
     body_detected = db.Column(db.Boolean)
     no_of_bodies = db.Column(db.Integer)
+    ## add status
+
+## add user credentials wala table
 
     def __repr__(self):
         return "<Open door time: {}>".format(self.open_door_time)
